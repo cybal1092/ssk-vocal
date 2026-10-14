@@ -358,6 +358,7 @@ nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--su
 .kres .kl8 button.weak{box-shadow:inset 0 0 0 2px #F28A77}
 .kres .unl{font-family:var(--display);font-weight:700;color:#6FCB98}
 .klyr .l2 .go{color:var(--k-gold);font-weight:700}
+.kfb.f{color:#8FA9FF}.kfb.c{color:#F29C58}.kfb.dim{font-size:16px}
 .toast{position:fixed;left:50%;bottom:calc(var(--tabh) + 18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;
   background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:13.5px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
 @media (max-width:420px){.kcard{grid-template-columns:1fr}.kcard .disc{display:none}}
@@ -542,7 +543,8 @@ nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--su
       <div class="kcard"><div class="disc" aria-hidden="true" style="background:radial-gradient(circle at 50% 50%,var(--surface) 0 18%,var(--ink) 19% 22%,var(--chest) 23% 100%)"></div>
         <div style="display:grid;gap:8px;min-width:0">
           <h3>내 MR로 노래방</h3>
-          <p class="small">가지고 있는 MR 파일을 올리면 노래방처럼 키를 바꿔 틀어 줘요. 마이크가 켜져 있으면 끝난 뒤 음역 평가와 추천 키를 알려 줘요.</p>
+          <p class="small">가지고 있는 MR 파일을 올리면 노래방처럼 키를 바꿔 틀어 줘요. 마이크를 켜고 한 번 끝까지 부르면 <b>진성·가성 지도</b>가 생겨요. 다음부터는 가성으로 넘길 곳 1초 전에 "곧 가성 ↑"이 뜨고 휴대폰이 짧게 진동해요.</p>
+          <p class="small muted">같은 MR 파일을 다시 고르면 지도가 자동으로 불러와져요. 화면의 「가성 ○○부터」 버튼으로 넘기는 기준 음을 바꿀 수 있어요.</p>
           <label class="drop" id="mrDrop" tabindex="0"><input type="file" id="mrFile" accept="audio/*,.m4a,.mp3,.wav,.aac,.ogg" hidden><b>MR 파일 고르기</b><span class="small muted">m4a · mp3 · wav</span></label>
           <p class="small muted" id="mrMsg"></p>
         </div></div>
@@ -1112,15 +1114,15 @@ function unlocked(g,lv){return lv<=1||(gBest(g,lv-1)??0)>=70||(micless()&&gN(g,l
 function nextLv(g){let lv=1;for(let k=1;k<=3;k++)if(unlocked(g,k))lv=k;for(let k=1;k<=lv;k++)if((gBest(g,k)??0)<70)return k;return lv;}
 
 /* ---------- store ---------- */
-function blank(){return {v:3,range:null,rangeHistory:[],sessions:[],songs:{},custom:[],xp:0,badges:{},scores:{},kLog:[],mrLog:[],activity:[],
+function blank(){return {v:3,range:null,rangeHistory:[],sessions:[],songs:{},custom:[],xp:0,badges:{},scores:{},kLog:[],mrLog:[],activity:[],mrMaps:{},
   daily:{},games:{match:{best:{},plays:0,n:{}},echo:{best:{},plays:0,n:{}}},exBest:{},lineReps:{},kLines:{},accLog:[],stagesDone:{},missions:{},onboard:false,
-  prefs:{preset:'basic',shift:0,tempo:1,kshift:{},kvol:1,guide:true,slow:false,goal:10}};}
+  prefs:{preset:'basic',shift:0,tempo:1,kshift:{},kvol:1,guide:true,slow:false,goal:10,flipAt:null}};}
 let S=blank();
 const LS='ssk-vocal-v1';
 let dbRef=null,saveTimer=null,saveChain=Promise.resolve(),storeMode='local';
 function normalize(o){const b=blank();const s=Object.assign(b,o||{});s.prefs=Object.assign(blank().prefs,s.prefs||{});
   ['rangeHistory','sessions','custom','kLog','mrLog','activity','accLog'].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[];});
-  ['songs','badges','scores','daily','exBest','lineReps','kLines','stagesDone','missions'].forEach(k=>{if(!s[k]||typeof s[k]!=='object'||Array.isArray(s[k]))s[k]={};});
+  ['songs','badges','scores','daily','exBest','lineReps','kLines','stagesDone','missions','mrMaps'].forEach(k=>{if(!s[k]||typeof s[k]!=='object'||Array.isArray(s[k]))s[k]={};});
   if(!s.prefs.kshift||typeof s.prefs.kshift!=='object')s.prefs.kshift={};
   const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
   const g=obj(s.games);s.games={};['match','echo'].forEach(k=>{const x=obj(g[k]);s.games[k]={best:obj(x.best),plays:+x.plays||0,n:obj(x.n)};});
@@ -1876,7 +1878,7 @@ function kBuses(){
 function setGuide(){if(!K.leadBus)return;const on=S.prefs.guide;K.leadBus.gain.value=on?(MIC.on?.45:.8):0;$('#kGuide').setAttribute('aria-pressed',on);}
 function kLaunch(kind,build,base){
   ac();K.mode='song';K.kind=kind;K.build=build;K.base=base;
-  $('#kLyr').hidden=false;$('#kGuide').hidden=kind==='echo';$('#kScoreL').textContent='음정 점수';$('#kRes').hidden=true;$('#kCount').hidden=true;
+  $('#kLyr').hidden=false;$('#kGuide').hidden=kind==='echo';$('#kGuide').textContent='멜로디';$('#kFb').className='kfb';$('#kScoreL').textContent='음정 점수';$('#kRes').hidden=true;$('#kCount').hidden=true;
   kOpen();kPrep();
 }
 async function kPrep(){
@@ -2119,7 +2121,7 @@ function kEndEcho(box,sc,tips){
 }
 
 /* ---------- my MR ---------- */
-const MR={buf:null,name:'',src:null,dry:null,wet:null,sh:null,key:0,startAt:0,offset:0,playing:false,raf:0,times:[],midi:[],lastPT:0,manual:false};
+const MR={id:'',map:null,mapC:null,lastVib:-1,buf:null,name:'',src:null,dry:null,wet:null,sh:null,key:0,startAt:0,offset:0,playing:false,raf:0,times:[],midi:[],lastPT:0,manual:false};
 function makeShifter(){
   const sr=AC.sampleRate,bufT=.1,fadeT=.05,n1=Math.round(bufT*sr),fl=Math.round(fadeT*sr);
   const delayBuf=up=>{const b=AC.createBuffer(1,n1,sr),p=b.getChannelData(0);for(let i=0;i<n1;i++)p[i]=up?1-i/n1:i/n1;return b;};
@@ -2143,17 +2145,22 @@ async function loadMR(f){
   const msg=$('#mrMsg');msg.textContent='MR을 여는 중…';
   try{ac();const buf=await f.arrayBuffer();
     MR.buf=await new Promise((res,rej)=>{const p=AC.decodeAudioData(buf,res,rej);if(p&&p.then)p.then(res,rej);});
-    MR.name=(f.name||'내 MR').replace(/\.[^.]+$/,'');MR.key=0;msg.textContent='';openMR();
+    MR.name=(f.name||'내 MR').replace(/\.[^.]+$/,'');MR.key=0;msg.textContent='';
+    MR.id=MR.name+'|'+Math.round(MR.buf.duration);MR.map=S.mrMaps[MR.id]||null;
+    if(MR.map)MR.key=clamp(MR.map.k0|0,-6,6);
+    openMR();
+    if(MR.map)toast(`가성 지도를 불러왔어요 · 넘기는 곳 ${MR.mapC.ev.filter(e=>e.up).length}군데 · 키 ${MR.key>0?'+':''}${MR.key}`);
   }catch(e){console.warn(e);msg.textContent='이 파일은 열 수 없어요. m4a, mp3, wav 형식으로 올려 주세요.';}
 }
 function openMR(){
-  K.mode='mr';$('#kLyr').hidden=true;$('#kGuide').hidden=true;$('#kRes').hidden=true;$('#kCount').hidden=true;$('#kScoreL').textContent='최고 지속음';$('#kScore').textContent='—';$('#kFb').textContent='';
+  K.mode='mr';$('#kLyr').hidden=true;$('#kRes').hidden=true;$('#kCount').hidden=true;$('#kScoreL').textContent='최고 지속음';$('#kScore').textContent='—';$('#kFb').textContent='';$('#kFb').className='kfb';
+  $('#kGuide').hidden=false;mrGuideBtn();
   kOpen();kStopAudio();kBuses();
   if(MR.sh){MR.sh.stop();}MR.sh=makeShifter();MR.dry=AC.createGain();MR.wet=AC.createGain();MR.dry.connect(K.bus);MR.sh.output.connect(MR.wet);MR.wet.connect(K.bus);
-  mrSetKey(0);MR.times=[];MR.midi=[];mrPlay(0);
+  mrSetKey(MR.key);MR.times=[];MR.midi=[];mrPlay(0);
 }
-function mrMeta(){$('#kTitle').textContent=MR.name;$('#kMeta').textContent=`키 ${MR.key>0?'+':''}${MR.key} · ${fmtDur(mrPos())} / ${fmtDur(MR.buf.duration)}`;}
-function mrSetKey(k){MR.key=clamp(k,-6,6);if(MR.sh)MR.sh.set(MR.key);if(MR.dry){MR.dry.gain.value=MR.key===0?1:0;MR.wet.gain.value=MR.key===0?0:1;}}
+function mrMeta(){$('#kTitle').textContent=MR.name;$('#kMeta').textContent=`키 ${MR.key>0?'+':''}${MR.key} · ${fmtDur(mrPos())} / ${fmtDur(MR.buf.duration)}${MR.map?' · 가성 지도 켜짐':''}`;}
+function mrSetKey(k){MR.key=clamp(k,-6,6);if(MR.sh)MR.sh.set(MR.key);if(MR.dry){MR.dry.gain.value=MR.key===0?1:0;MR.wet.gain.value=MR.key===0?0:1;}mapCompute();}
 function mrPos(){return MR.playing?clamp(AC.currentTime-MR.startAt,0,MR.buf.duration):MR.offset;}
 function mrPlay(from){
   if(MR.src){MR.manual=true;try{MR.src.stop();}catch(e){}MR.src=null;}
@@ -2161,54 +2168,137 @@ function mrPlay(from){
   const s=AC.createBufferSource();s.buffer=MR.buf;s.connect(MR.dry);s.connect(MR.sh.input);
   MR.manual=false;s.onended=()=>{if(!MR.manual&&MR.src===s){MR.playing=false;mrEnd();}};
   s.start(AC.currentTime+.05,from);MR.src=s;MR.startAt=AC.currentTime+.05-from;MR.offset=from;MR.playing=true;K.paused=false;$('#kPlay').textContent='일시정지';
-  cancelAnimationFrame(MR.raf);MR.raf=requestAnimationFrame(mrLoop);
+  MR.lastVib=-1;cancelAnimationFrame(MR.raf);MR.raf=requestAnimationFrame(mrLoop);
 }
 function mrStop(){cancelAnimationFrame(MR.raf);if(MR.src){MR.manual=true;try{MR.src.stop();}catch(e){}MR.src=null;}MR.playing=false;if(MR.sh){MR.sh.stop();MR.sh=null;}}
+
+/* ---------- 가성 지도: where to flip, learned from one sing-through with this MR ----------
+   Rule: inside a phrase, the first note at the flip pitch or above → falsetto; back to chest once the line
+   sits 4.5 semitones below that for 0.15 s, or after a breath (> 0.6 s silence). */
+const MAPHOP=.06;
+const flipAt=()=>S.prefs.flipAt!=null?+S.prefs.flipAt:(measured()?clamp(R().top+1,60,70):67);
+function mapBuild(){
+  const hop=MR.times.length>1?(MR.times[MR.times.length-1]-MR.times[0])/(MR.times.length-1):1/60;
+  const r=PE.post({times:Float32Array.from(MR.times),midi:Float32Array.from(MR.midi),hop});
+  const n=Math.ceil(MR.buf.duration/MAPHOP),acc=Array.from({length:n},()=>[]),p=new Array(n).fill(-1);
+  for(let i=0;i<r.times.length;i++){const m=r.midi[i];if(isNaN(m))continue;const k=Math.round(r.times[i]/MAPHOP);if(k>=0&&k<n)acc[k].push(m);}
+  let vo=0;for(let k=0;k<n;k++)if(acc[k].length){const a=acc[k].sort((x,y)=>x-y);p[k]=Math.round(a[a.length>>1]*10);vo++;}
+  return {name:MR.name,k0:MR.key,hop:MAPHOP,p,d:ymd(new Date()),vo:Math.round(vo*MAPHOP)};
+}
+function mapEvents(e,key,fa){
+  const sh=key-e.k0,n=e.p.length,reg=new Int8Array(n).fill(-1),ev=[],up=fa-.4,down=fa-4.5;
+  const at=k=>e.p[k]<0?NaN:e.p[k]/10+sh;
+  let on=false,low=0,last=-99;
+  for(let k=0;k<n;k++){
+    const m=at(k);if(isNaN(m))continue;const t=k*e.hop;
+    if(on&&t-last>.6){on=false;ev.push({t,up:false,soft:true});}
+    last=t;
+    if(!on){if(m>=up&&at(k+1)>=up){on=true;low=0;ev.push({t,up:true});}}
+    else{low=m<down?low+1:0;if(low*e.hop>=.15){on=false;ev.push({t:t-.15,up:false});}}
+    reg[k]=on?1:0;
+  }
+  return {reg,ev};
+}
+function mapCompute(){MR.mapC=MR.map?mapEvents(MR.map,MR.key,flipAt()):null;}
+function mrGuideBtn(){const b=$('#kGuide');b.textContent=`가성 ${nn(flipAt())}부터`;b.setAttribute('aria-pressed',!!MR.map);}
+function mapSave(){
+  const e=mapBuild();if(e.vo<15)return false;
+  S.mrMaps[MR.id]=e;const ids=Object.keys(S.mrMaps).sort((a,b)=>(S.mrMaps[a].d<S.mrMaps[b].d?-1:1));
+  while(ids.length>6)delete S.mrMaps[ids.shift()];
+  MR.map=e;mapCompute();mrGuideBtn();save();return true;
+}
+function setCue(msg,cls){const el=$('#kFb');if(el.textContent!==msg)el.textContent=msg;const c='kfb'+(cls?' '+cls:'');if(el.className!==c)el.className=c;el.style.opacity=msg?(cls.includes('dim')?.55:1):0;}
+function mrCue(pos){
+  const M=MR.mapC;if(!M){setCue('','');return;}
+  let nx=null;for(const e of M.ev){if(!e.soft&&e.t>pos-.08){nx=e;break;}}
+  const k=Math.floor(pos/MR.map.hop),cur=M.reg[k];
+  if(nx&&nx.up&&nx.t-pos<1.3){setCue(nx.t-pos>.3?'곧 가성 ↑':'가성!','f');
+    if(nx.t-pos<.15&&MR.lastVib!==nx.t){MR.lastVib=nx.t;try{navigator.vibrate&&navigator.vibrate(80);}catch(e){}}}
+  else if(nx&&!nx.up&&nx.t-pos<1)setCue('진성으로 ↓','c');
+  else setCue(cur===1?'가성':'',cur===1?'f dim':'');
+}
 function mrLoop(){
   if(K.mode!=='mr'||!MR.buf)return;
   const pos=mrPos(),p=micFresh();
   if(p&&p.t!==MR.lastPT&&!K.paused&&MR.playing){MR.lastPT=p.t;MR.times.push(pos-LAT());MR.midi.push(p.m);if(!isNaN(p.m))$('#kMine').textContent=nn(p.m);}
   const v=[];for(let i=Math.max(0,MR.midi.length-2400);i<MR.midi.length;i++)if(!isNaN(MR.midi[i]))v.push(MR.midi[i]);
   if(v.length>30)$('#kScore').textContent=nn(pct(v,.98));
-  drawMRLane(pos);mrMeta();$('#kProg').style.width=(pos/MR.buf.duration*100)+'%';
+  mrCue(pos);drawMRLane(pos);mrMeta();$('#kProg').style.width=(pos/MR.buf.duration*100)+'%';
   MR.raf=requestAnimationFrame(mrLoop);
 }
 function drawMRLane(pos){
-  const cv=$('#kCv');if(!cv.clientWidth)return;const {c,W,H}=laneCtx(cv),Rg=R();
-  const lo=Rg.low-3,hi=Math.max(Rg.fTop,Rg.max+3)+2,span=8,X=t=>W-(pos-t)/span*W,Y=m=>10+(hi-m)/(hi-lo)*(H-20);
-  c.fillStyle='rgba(242,138,119,.12)';c.fillRect(0,10,W,Y(Rg.max+.5)-10);
+  const cv=$('#kCv');if(!cv.clientWidth)return;const {c,W,H}=laneCtx(cv),Rg=R(),M=MR.mapC;
+  const lo=Rg.low-3,hi=Math.max(Rg.fTop,Rg.max+3)+2,past=M?4.2:8,fut=M?2.8:0,nowX=W*past/(past+fut);
+  const X=t=>nowX+(t-pos)/(past+fut)*W,Y=m=>10+(hi-m)/(hi-lo)*(H-20),fm=m=>{while(m<lo)m+=12;while(m>hi)m-=12;return m;};
+  if(!M){c.fillStyle='rgba(242,138,119,.12)';c.fillRect(0,10,W,Y(Rg.max+.5)-10);}
   c.font='10px "IBM Plex Mono",monospace';
   for(let m=Math.ceil(lo);m<=hi;m++)if(pc(m)===0){c.strokeStyle=KCOL.grid;c.beginPath();c.moveTo(0,Y(m));c.lineTo(W,Y(m));c.stroke();c.fillStyle=KCOL.dim;c.fillText(nn(m),4,Y(m)-3);}
-  [[Rg.top,KCOL.chest,'진성 편안 '+nn(Rg.top)],[Rg.max,'#F28A77','버거움 '+nn(Rg.max)],[Rg.fTop,KCOL.falsetto,'가성 '+nn(Rg.fTop)]].forEach(([m,col,l])=>{c.strokeStyle=col;c.setLineDash([5,4]);c.beginPath();c.moveTo(0,Y(m));c.lineTo(W,Y(m));c.stroke();c.setLineDash([]);c.fillStyle=col;c.textAlign='right';c.fillText(l,W-6,Y(m)-4);c.textAlign='left';});
+  const refs=M?[[flipAt(),KCOL.falsetto,'가성 기준 '+nn(flipAt())]]:[[Rg.top,KCOL.chest,'진성 편안 '+nn(Rg.top)],[Rg.max,'#F28A77','버거움 '+nn(Rg.max)],[Rg.fTop,KCOL.falsetto,'가성 '+nn(Rg.fTop)]];
+  refs.forEach(([m,col,l])=>{c.strokeStyle=col;c.setLineDash([5,4]);c.lineWidth=1;c.beginPath();c.moveTo(0,Y(m-(M?.5:0)));c.lineTo(W,Y(m-(M?.5:0)));c.stroke();c.setLineDash([]);c.fillStyle=col;if(M){c.fillText(l,40,Y(m-.5)-4);}else{c.textAlign='right';c.fillText(l,W-6,Y(m)-4);c.textAlign='left';}});
+  if(M){
+    const e=MR.map,sh=MR.key-e.k0,k0=Math.max(0,Math.floor((pos-past)/e.hop)),k1=Math.min(e.p.length-1,Math.ceil((pos+fut)/e.hop));
+    c.lineWidth=7;c.lineCap='round';
+    for(let k=k0;k<k1;k++){if(e.p[k]<0||e.p[k+1]<0)continue;const t=k*e.hop;
+      c.strokeStyle=M.reg[k]===1?KCOL.falsetto:KCOL.chest;c.globalAlpha=t<pos?.22:.6;
+      c.beginPath();c.moveTo(X(t),Y(fm(e.p[k]/10+sh)));c.lineTo(X(t+e.hop),Y(fm(e.p[k+1]/10+sh)));c.stroke();}
+    c.globalAlpha=1;c.lineCap='butt';c.font='700 12px "IBM Plex Sans KR",sans-serif';c.textAlign='center';
+    for(const ev of M.ev){if(ev.soft||ev.t<pos-past||ev.t>pos+fut)continue;const x=X(ev.t),col=ev.up?KCOL.falsetto:KCOL.chest;
+      c.strokeStyle=col;c.lineWidth=1.5;c.setLineDash([4,4]);c.beginPath();c.moveTo(x,18);c.lineTo(x,H-4);c.stroke();c.setLineDash([]);c.fillStyle=col;c.fillText(ev.up?'가성 ↑':'진성 ↓',x,13);}
+    c.textAlign='left';c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=2;c.beginPath();c.moveTo(nowX,0);c.lineTo(nowX,H);c.stroke();
+  }
   c.strokeStyle=KCOL.user;c.lineWidth=3;c.lineJoin='round';c.beginPath();let pen=false,pt=0;
-  for(let i=Math.max(0,MR.times.length-900);i<MR.times.length;i++){const t=MR.times[i],m=MR.midi[i];if(t<pos-span)continue;if(isNaN(m)){pen=false;continue;}const x=X(t),y=Y(m);if(!pen||t-pt>.12){c.moveTo(x,y);pen=true;}else c.lineTo(x,y);pt=t;}
+  for(let i=Math.max(0,MR.times.length-900);i<MR.times.length;i++){const t=MR.times[i],m=MR.midi[i];if(t<pos-past||t>pos+.2)continue;if(isNaN(m)){pen=false;continue;}const x=X(t),y=Y(M?fm(m):m);if(!pen||t-pt>.12){c.moveTo(x,y);pen=true;}else c.lineTo(x,y);pt=t;}
   c.stroke();
-  if(!MIC.on){c.fillStyle=KCOL.text;c.font='600 14px "IBM Plex Sans KR",sans-serif';c.textAlign='center';c.fillText('마이크가 켜지면 내 음이 여기 그려져요',W/2,H/2);c.textAlign='left';}
+  c.fillStyle=KCOL.text;c.font='600 14px "IBM Plex Sans KR",sans-serif';c.textAlign='center';
+  if(!MIC.on)c.fillText('마이크가 켜지면 내 음이 여기 그려져요',W/2,H/2);
+  else if(!M&&pos<6)c.fillText('한 번 끝까지 부르면 진성·가성 지도를 만들어요',W/2,H/2);
+  c.textAlign='left';
 }
-function mrEnd(){
-  cancelAnimationFrame(MR.raf);const box=$('#kRes');box.hidden=false;const Rg=R();
+function mapSummary(){
+  const M=MR.mapC;if(!M)return '';
+  const ups=M.ev.filter(e=>e.up),fa=flipAt();
+  return `<div class="tips"><div class="tip"><span><b>가성 지도</b>${nn(fa)}(${ko(fa).split(' ')[1]}) 이상이 나오면 가성, 내려오면 다시 진성. 넘길 곳 ${ups.length}군데${ups.length?': '+ups.slice(0,10).map(e=>fmtDur(e.t)).join(' · ')+(ups.length>10?' …':''):''}</span>
+    <div class="row" style="justify-content:flex-start"><button class="kbtn" type="button" id="mapDn">기준 −반음</button><button class="kbtn" type="button" id="mapUp">기준 +반음</button></div>
+    <span class="kmeta" style="text-align:left">진성이 힘들면 기준을 내리고, 편해지면 올려요. 다음에 부를 때 넘길 곳 1초 전에 "곧 가성 ↑"이 뜨고 휴대폰이 짧게 진동해요.</span></div></div>`;
+}
+function wireMap(box){
+  const step=d=>{S.prefs.flipAt=clamp(flipAt()+d,58,72);save();mapCompute();mrGuideBtn();mrEnd(true);};
+  const dn=$('#mapDn',box),up=$('#mapUp',box);if(dn)dn.onclick=()=>step(-1);if(up)up.onclick=()=>step(1);
+}
+function mrEnd(redraw){
+  cancelAnimationFrame(MR.raf);const box=$('#kRes');box.hidden=false;const Rg=R();setCue('','');
   const voiced=MR.midi.filter(x=>!isNaN(x)).length;
-  S.mrLog.push({d:ymd(new Date()),name:MR.name,key:MR.key});if(S.mrLog.length>100)S.mrLog=S.mrLog.slice(-100);
-  addTime(MR.buf.duration,'kara');
-  if(voiced<40){logAct('mr',MR.name,`키 ${MR.key}`);save();addXP(15,'내 MR 노래방');
-    box.innerHTML=`<p class="kmeta">${esc(MR.name)}</p><div class="big">♪</div><p class="grade">끝까지 불렀어요</p><p class="kmeta">${MIC.on?'목소리를 거의 못 찾았어요. 이어폰을 끼고 마이크 가까이에서 불러 보세요.':'마이크가 켜지면 음역 평가와 추천 키를 알려 줘요.'}</p>
-      <div class="row"><button class="kbtn" type="button" id="mrAgain">다시 틀기</button><button class="kbtn" type="button" id="kBack">목록으로</button></div>`;
+  let made=false;
+  if(!redraw){
+    S.mrLog.push({d:ymd(new Date()),name:MR.name,key:MR.key});if(S.mrLog.length>100)S.mrLog=S.mrLog.slice(-100);
+    addTime(MR.buf.duration,'kara');
+    if(voiced>=40&&!MR.map)made=mapSave();
+  }
+  if(voiced<40){if(!redraw){logAct('mr',MR.name,`키 ${MR.key}`);save();addXP(15,'내 MR 노래방');}
+    box.innerHTML=`<p class="kmeta">${esc(MR.name)}</p><div class="big">♪</div><p class="grade">끝까지 불렀어요</p><p class="kmeta">${MIC.on?'목소리를 거의 못 찾았어요. 이어폰을 끼고 마이크 가까이에서 불러 보세요.':'마이크가 켜지면 음역 평가와 진성·가성 지도를 만들어 줘요.'}</p>
+      ${mapSummary()}
+      <div class="row"><button class="kbtn" type="button" id="mrAgain">${MR.map?'지도 보며 다시 부르기':'다시 틀기'}</button><button class="kbtn" type="button" id="kBack">목록으로</button></div>`;
   }else{
     const hop=MR.times.length>1?(MR.times[MR.times.length-1]-MR.times[0])/(MR.times.length-1):1/60;
     const r=PE.post({times:Float32Array.from(MR.times),midi:Float32Array.from(MR.midi),hop});
     const top=r.stats.topNote,above=Array.from(r.midi).filter(x=>!isNaN(x));const abovePct=Math.round(above.filter(x=>x>Rg.top+.5).length/above.length*100);
     const over=top!=null?top-Rg.top:0,rec=MR.key-Math.max(0,over);
-    const verdict=over>2?`편안 최고보다 ${over}키 높이 올라갔어요. 다음엔 키 ${rec>0?'+':''}${rec}로 불러 보세요.`:over>0?`편안 최고보다 ${over}키 위까지 갔어요. 지금 키도 되지만 키 ${rec>0?'+':''}${rec}가 더 편해요.`:`편한 음역 안에서 불렀어요. 지금 키가 잘 맞아요.`;
-    logAct('mr',MR.name,`키 ${MR.key} · 최고 ${nn(top)}`);save();addXP(20,'내 MR 음역 평가');
-    box.innerHTML=`<p class="kmeta">${esc(MR.name)} · 키 ${MR.key>0?'+':''}${MR.key}</p><p class="grade">음역 평가</p>
+    const verdict=over>2?`진성으로 부른다면 편안 최고보다 ${over}키 높아요. 진성 위주로는 키 ${rec>0?'+':''}${rec}가 맞고, 원키로 가려면 지도대로 높은 곳만 가성으로 넘겨요.`:over>0?`편안 최고보다 ${over}키 위까지 갔어요. 지금 키도 되지만 진성 위주라면 키 ${rec>0?'+':''}${rec}가 더 편해요.`:`편한 음역 안에서 불렀어요. 지금 키가 잘 맞아요.`;
+    if(!redraw){logAct('mr',MR.name,`키 ${MR.key} · 최고 ${nn(top)}`);save();addXP(20+(made?10:0),made?'내 MR 가성 지도 완성':'내 MR 음역 평가');}
+    box.innerHTML=`<p class="kmeta">${esc(MR.name)} · 키 ${MR.key>0?'+':''}${MR.key}</p><p class="grade">${made?'가성 지도를 만들었어요':'음역 평가'}</p>
       <div class="kst"><div><b>${nn(top)}</b><span>최고 지속음</span></div><div><b>${abovePct}%</b><span>편안 최고 위</span></div><div><b>${r.breaks.length}회</b><span>뒤집힘·꺾임</span></div>
-      <div><b>${nn(r.stats.lowNote)}</b><span>최저 지속음</span></div><div><b>${r.stats.meanAbsCents??'—'}${r.stats.meanAbsCents!=null?'¢':''}</b><span>평균 음정 오차</span></div><div><b>${rec>0?'+':''}${rec}</b><span>추천 키</span></div></div>
-      <p class="kmeta" style="max-width:420px;line-height:1.6">${esc(verdict)}</p>
-      <div class="row">${top!=null&&top>Rg.top?`<button class="kbtn" type="button" id="mrApply">진성 최고를 ${nn(top)}로 기록</button>`:''}<button class="kbtn" type="button" id="mrKey">키 ${rec>0?'+':''}${rec}로 다시</button><button class="kbtn" type="button" id="kBack">목록으로</button></div>`;
-    const ap=$('#mrApply');if(ap)ap.onclick=()=>{const c=Object.assign({},R(),{top});c.max=Math.max(c.max,top);setRange(c,'내 MR');toast('진성 최고를 기록했어요');};
+      <div><b>${nn(r.stats.lowNote)}</b><span>최저 지속음</span></div><div><b>${r.stats.meanAbsCents??'—'}${r.stats.meanAbsCents!=null?'¢':''}</b><span>평균 음정 오차</span></div><div><b>${rec>0?'+':''}${rec}</b><span>진성 기준 추천 키</span></div></div>
+      <p class="kmeta" style="max-width:440px;line-height:1.6">${esc(verdict)}</p>
+      ${mapSummary()}
+      <div class="row"><button class="kbtn" type="button" id="mrAgain">${MR.map?'지도 보며 다시 부르기':'다시 틀기'}</button>${MR.map&&!made?'<button class="kbtn" type="button" id="mapRe">이번 노래로 지도 새로 만들기</button>':''}<button class="kbtn" type="button" id="mrKey">키 ${rec>0?'+':''}${rec}로 다시</button></div>
+      <div class="row">${top!=null&&top>Rg.top?`<button class="kbtn" type="button" id="mrApplyC">진성으로 냈다면: 진성 최고 ${nn(top)}</button>`:''}${top!=null&&top>Rg.fTop?`<button class="kbtn" type="button" id="mrApplyF">가성으로 냈다면: 가성 최고 ${nn(top)}</button>`:''}<button class="kbtn" type="button" id="kBack">목록으로</button></div>`;
+    const ac1=$('#mrApplyC');if(ac1)ac1.onclick=()=>{const c=Object.assign({},R(),{top});c.max=Math.max(c.max,top);setRange(c,'내 MR');toast('진성 최고를 기록했어요');};
+    const ac2=$('#mrApplyF');if(ac2)ac2.onclick=()=>{setRange(Object.assign({},R(),{fTop:top}),'내 MR');toast('가성 최고를 기록했어요');};
     $('#mrKey').onclick=()=>{mrSetKey(rec);box.hidden=true;MR.times=[];MR.midi=[];mrPlay(0);};
+    const re=$('#mapRe');if(re)re.onclick=()=>{const old=MR.map;MR.map=null;if(mapSave()){toast('이번 노래로 지도를 새로 만들었어요');mrEnd(true);}else{MR.map=old;mapCompute();toast('노래한 부분이 짧아서 지도를 새로 만들지 못했어요');}};
   }
-  const ag=$('#mrAgain');if(ag)ag.onclick=()=>{box.hidden=true;MR.times=[];MR.midi=[];mrPlay(0);};
+  wireMap(box);
+  $('#mrAgain').onclick=()=>{box.hidden=true;MR.times=[];MR.midi=[];mrPlay(0);};
   $('#kBack').onclick=kCloseAll;
 }
 
@@ -2767,7 +2857,7 @@ function kKey(d){
   if(K.mode==='mr'){mrSetKey(MR.key+d);toast(`키 ${MR.key>0?'+':''}${MR.key}`);return;}
   if(!K.data)return;K.delta=clamp(K.delta+d,-6-K.base,6-K.base);kMeta();toast(`키 ${K.base+K.delta>0?'+':''}${K.base+K.delta}`);
 }
-$('#kGuide').onclick=()=>{S.prefs.guide=!S.prefs.guide;save();setGuide();toast(S.prefs.guide?'가이드 멜로디 켜짐':'가이드 멜로디 꺼짐');};
+$('#kGuide').onclick=()=>{if(K.mode==='mr'){const v=flipAt()+1>70?62:flipAt()+1;S.prefs.flipAt=v;save();mapCompute();mrGuideBtn();toast(`가성 기준 ${nn(v)} · 이 음부터 가성으로 넘겨요`);return;}S.prefs.guide=!S.prefs.guide;save();setGuide();toast(S.prefs.guide?'가이드 멜로디 켜짐':'가이드 멜로디 꺼짐');};
 $('#kMic').onclick=async()=>{if(MIC.on){toast('마이크는 켜져 있어요');return;}const ok=await micStart();toast(ok?'마이크를 켰어요':'이 화면에서는 마이크를 쓸 수 없어요');setGuide();};
 $('#kEcho').onclick=()=>{if(!MIC.on){toast('마이크가 켜져야 에코를 쓸 수 있어요');return;}const on=!MIC.mon;monitor(on);$('#kEcho').setAttribute('aria-pressed',on);toast(on?'에코 켜짐 · 이어폰을 꼈을 때만 쓰세요':'에코 꺼짐');};
 const VOLS=[[.6,'반주 작게'],[1,'반주 보통'],[1.4,'반주 크게']];
