@@ -436,7 +436,8 @@ nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--su
           <div class="seg" role="group" aria-label="빠르기" id="tempoSeg" style="min-width:132px"></div>
         </div>
       </div>
-      <p class="small muted">마이크가 켜져 있으면 연습마다 별점이 붙어요. 아이폰은 무음 스위치가 켜져 있으면 소리가 나지 않아요.</p>
+      <div class="between small"><span class="muted">마이크가 켜져 있으면 연습마다 별점이 붙어요.</span><button class="btn sm" type="button" id="sndTest">소리 테스트</button></div>
+      <p class="small muted" id="sndHelp">소리가 안 나면 재생 중에 볼륨 버튼으로 미디어 볼륨을 올려 보세요. 블루투스 기기에 연결돼 있으면 그쪽으로 소리가 나가요. 아이폰은 무음 스위치를 꺼 주세요.</p>
     </div>
     <div class="panel">
       <div class="between"><h2>하나만 골라 연습</h2><span class="small muted">별점은 최고 기록</span></div>
@@ -1210,7 +1211,7 @@ let AC=null,master=null,REV=null,NOISE=null;
 function ac(){
   if(!AC){const C=window.AudioContext||window.webkitAudioContext;
     try{AC=new C({latencyHint:'interactive'});}catch(e){AC=new C();}
-    master=AC.createGain();master.gain.value=.6;
+    master=AC.createGain();master.gain.value=.85;
     const comp=AC.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;master.connect(comp);comp.connect(AC.destination);
     REV=AC.createConvolver();REV.buffer=makeIR(1.9);const rg=AC.createGain();rg.gain.value=.3;REV.connect(rg);rg.connect(master);
     NOISE=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const nd=NOISE.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;}
@@ -1221,7 +1222,7 @@ function makeIR(sec){const n=Math.round(AC.sampleRate*sec),b=AC.createBuffer(2,n
 const LAT=()=>clamp((AC&&AC.outputLatency||.04)+(AC&&AC.baseLatency||.01)+.06,.06,.4);
 function tone(dest,m,t,dur,o={}){
   const c=AC,o1=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain(),f=c.createBiquadFilter();
-  o1.type='triangle';o2.type='sine';f.type='lowpass';f.frequency.value=2600;g2.gain.value=.16;
+  o1.type='sawtooth';o2.type='triangle';f.type='lowpass';f.frequency.value=3000;g2.gain.value=.25;
   const f0=hz(m);o1.frequency.setValueAtTime(f0,t);o2.frequency.setValueAtTime(f0*2,t);
   if(o.to!=null){o1.frequency.exponentialRampToValueAtTime(hz(o.to),t+dur);o2.frequency.exponentialRampToValueAtTime(hz(o.to)*2,t+dur);}
   o1.connect(g);o2.connect(g2);g2.connect(g);g.connect(f);f.connect(dest);
@@ -1231,9 +1232,10 @@ function tone(dest,m,t,dur,o={}){
   o1.start(t);o2.start(t);o1.stop(t+dur+r+.03);o2.stop(t+dur+r+.03);
 }
 function pluck(dest,m,t,dur=.6){
-  const c=AC,o1=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain();
-  o1.type='sine';o2.type='triangle';g2.gain.value=.35;o1.frequency.value=hz(m);o2.frequency.value=hz(m)*2;
-  o1.connect(g);o2.connect(g2);g2.connect(g);g.connect(dest);
+  const c=AC,o1=c.createOscillator(),o2=c.createOscillator(),g=c.createGain(),g2=c.createGain(),f=c.createBiquadFilter();
+  o1.type='sawtooth';o2.type='triangle';g2.gain.value=.35;o1.frequency.value=hz(m);o2.frequency.value=hz(m)*2;
+  f.type='lowpass';f.frequency.setValueAtTime(4200,t);f.frequency.exponentialRampToValueAtTime(1400,t+dur);
+  o1.connect(g);o2.connect(g2);g2.connect(g);g.connect(f);f.connect(dest);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.42,t+.008);g.gain.exponentialRampToValueAtTime(.001,t+dur);
   o1.start(t);o2.start(t);o1.stop(t+dur+.05);o2.stop(t+dur+.05);
 }
@@ -1243,7 +1245,7 @@ function playNote(m,dur=1.1){ac();const t=AC.currentTime+.03;pluck(master,m,t,.5
 /* backing instruments */
 function piano(dest,m,t,dur,vel=.5){
   const o1=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),g2=AC.createGain(),lp=AC.createBiquadFilter();
-  o1.type='triangle';o2.type='sine';o1.frequency.value=hz(m);o2.frequency.value=hz(m)*2;o2.detune.value=4;g2.gain.value=.3;
+  o1.type='sawtooth';o2.type='triangle';o1.frequency.value=hz(m);o2.frequency.value=hz(m)*2;o2.detune.value=4;g2.gain.value=.3;
   lp.type='lowpass';lp.frequency.value=1600+vel*2600;
   o1.connect(g);o2.connect(g2);g2.connect(g);g.connect(lp);lp.connect(dest);
   const hold=Math.max(.5,dur),end=t+hold+.35;
@@ -1276,8 +1278,9 @@ function drum(dest,k,t,vel=.6){
 }
 function lead(dest,m,t,dur,vel=.5){
   const o=AC.createOscillator(),o2=AC.createOscillator(),g=AC.createGain(),g2=AC.createGain(),lfo=AC.createOscillator(),lg=AC.createGain();
-  o.type='sine';o2.type='triangle';o.frequency.value=hz(m);o2.frequency.value=hz(m);g2.gain.value=.4;lfo.frequency.value=5.2;lg.gain.value=hz(m)*.006;
-  lfo.connect(lg);lg.connect(o.frequency);lg.connect(o2.frequency);o.connect(g);o2.connect(g2);g2.connect(g);g.connect(dest);
+  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2800;
+  o.type='sawtooth';o2.type='triangle';o.frequency.value=hz(m);o2.frequency.value=hz(m)*2;g2.gain.value=.3;lfo.frequency.value=5.2;lg.gain.value=hz(m)*.006;
+  lfo.connect(lg);lg.connect(o.frequency);lg.connect(o2.frequency);o.connect(g);o2.connect(g2);g2.connect(g);g.connect(lp);lp.connect(dest);
   const pk=vel*.3;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(pk,t+.03);g.gain.setValueAtTime(pk,t+Math.max(.04,dur-.05));g.gain.linearRampToValueAtTime(0,t+dur+.06);
   [o,o2,lfo].forEach(x=>{x.start(t);x.stop(t+dur+.1);});
 }
@@ -1290,16 +1293,17 @@ function sfx(k){if(!AC)return;const t=AC.currentTime+.01;
 function refNote(m,t,dur,reg){pluck(master,m,t,.5);tone(master,m,t+.02,dur,{vol:reg==='falsetto'?.17:.22});}
 
 /* ---------- mic ---------- */
+const ANDROID=/Android/i.test(navigator.userAgent||'');
 const MIC={on:false,state:'idle',stream:null,src:null,an:null,buf:null,raf:0,last:null,hist:[],floor:.01,mon:null,err:''};
 async function micStart(){
   if(MIC.on)return true;
   try{
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('지원 안 함');
     ac();
-    const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:false,autoGainControl:false}});
+    const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:!ANDROID,noiseSuppression:false,autoGainControl:false}});
     MIC.stream=st;MIC.src=AC.createMediaStreamSource(st);MIC.an=AC.createAnalyser();MIC.an.fftSize=4096;MIC.src.connect(MIC.an);MIC.buf=new Float32Array(MIC.an.fftSize);
     MIC.on=true;MIC.state='on';MIC.hist=[];renderMicChip();micTick();
-    if(AC.state==='suspended')AC.resume();
+    if(AC.state!=='running')AC.resume();
     return true;
   }catch(e){MIC.state='off';MIC.err=(e&&e.name)||'';renderMicChip();return false;}
 }
@@ -2711,6 +2715,7 @@ $('#micChip').onclick=async()=>{if(MIC.on){micStop();toast('마이크를 껐어�
 $('#startRoutine').onclick=()=>{const p=PRESETS[S.prefs.preset];openPlayer(p.steps,p.name+' 루틴');};
 $('#shiftDown').onclick=()=>{S.prefs.shift=clamp(S.prefs.shift-1,-5,5);save();renderPractice();};
 $('#shiftUp').onclick=()=>{S.prefs.shift=clamp(S.prefs.shift+1,-5,5);save();renderPractice();};
+$('#sndTest').onclick=()=>{ac();const t=AC.currentTime+.05;[60,64,67,72].forEach((m,i)=>{pluck(master,m,t+i*.28,.5);tone(master,m,t+i*.28+.02,.26,{vol:.22});});toast('도-미-솔-도가 들리면 정상이에요');};
 $('#obStart').onclick=()=>{S.onboard=true;save();renderHome();openTest();};
 $('#obSkip').onclick=()=>{S.onboard=true;save();renderHome();};
 $('#ring').onclick=()=>{const G4=[5,10,15,20];S.prefs.goal=G4[(G4.indexOf(S.prefs.goal)+1)%G4.length];save();renderHome();toast(`하루 목표 ${S.prefs.goal}분`);};
